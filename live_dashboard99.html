@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 داشبورد المطابقة المالية المباشر - Live Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            font-weight: 900;
+            margin-bottom: 10px;
+        }
+        
+        .header .subtitle {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        
+        .live-indicator {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+        }
+        
+        .live-dot {
+            width: 10px;
+            height: 10px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .last-update {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 13px;
+        }
+        
+        .controls {
+            padding: 20px 40px;
+            background: #f8fafc;
+            border-bottom: 2px solid #e2e8f0;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-success {
+            background: #10b981;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 40px;
+            background: #f8fafc;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-left: 5px solid #3b82f6;
+            transition: transform 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-card.success { border-left-color: #10b981; }
+        .stat-card.warning { border-left-color: #f59e0b; }
+        .stat-card.info { border-left-color: #6366f1; }
+        
+        .stat-icon {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+        
+        .stat-value {
+            font-size: 36px;
+            font-weight: 900;
+            color: #1e293b;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #64748b;
+            font-weight: 600;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #64748b;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            background: #fee2e2;
+            border: 2px solid #ef4444;
+            color: #991b1b;
+            padding: 20px;
+            margin: 20px 40px;
+            border-radius: 10px;
+        }
+        
+        .success-msg {
+            background: #d1fae5;
+            border: 2px solid #10b981;
+            color: #065f46;
+            padding: 20px;
+            margin: 20px 40px;
+            border-radius: 10px;
+        }
+        
+        .details-section {
+            padding: 40px;
+            display: none;
+        }
+        
+        .details-section.active {
+            display: block;
+        }
+        
+        .progress-bar {
+            background: #e2e8f0;
+            height: 30px;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        
+        .progress-fill {
+            background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            transition: width 1s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="live-indicator">
+                <div class="live-dot"></div>
+                <span>مباشر</span>
+            </div>
+            
+            <div class="last-update" id="lastUpdate">
+                آخر تحديث: --
+            </div>
+            
+            <h1>📊 داشبورد المطابقة المالية المباشر</h1>
+            <div class="subtitle">Live Reconciliation Dashboard - Nawris ↔ EzonePay</div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button class="btn" id="refreshBtn" onclick="fetchAllData()">
+                🔄 تحديث الآن
+            </button>
+            <button class="btn btn-success" onclick="toggleAutoRefresh()">
+                <span id="autoRefreshText">⏰ تفعيل التحديث التلقائي</span>
+            </button>
+            <button class="btn" onclick="resetTokens()">
+                🔑 تغيير Tokens
+            </button>
+            <button class="btn" onclick="clearCache()">
+                🗑️ مسح الذاكرة المؤقتة
+            </button>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="loading">
+            <div class="spinner"></div>
+            <p>جاري جلب البيانات...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" style="display: none;"></div>
+
+        <!-- Success State -->
+        <div id="successState" style="display: none;"></div>
+
+        <!-- Summary Statistics -->
+        <div id="summarySection" class="summary-grid" style="display: none;">
+            <div class="stat-card">
+                <div class="stat-icon">📋</div>
+                <div class="stat-value" id="totalNawris">--</div>
+                <div class="stat-label">إجمالي معاملات Nawris</div>
+            </div>
+            
+            <div class="stat-card success">
+                <div class="stat-icon">✅</div>
+                <div class="stat-value" id="totalMatched">--</div>
+                <div class="stat-label">معاملات متطابقة</div>
+            </div>
+            
+            <div class="stat-card success">
+                <div class="stat-icon">🎯</div>
+                <div class="stat-value" id="accuracy">--</div>
+                <div class="stat-label">نسبة المطابقة</div>
+            </div>
+            
+            <div class="stat-card info">
+                <div class="stat-icon">💰</div>
+                <div class="stat-value" id="totalAmount">--</div>
+                <div class="stat-label">إجمالي المبالغ (د.ل)</div>
+            </div>
+            
+            <div class="stat-card info">
+                <div class="stat-icon">💳</div>
+                <div class="stat-value" id="totalCommission">--</div>
+                <div class="stat-label">إجمالي العمولات (د.ل)</div>
+            </div>
+            
+            <div class="stat-card warning">
+                <div class="stat-icon">🔄</div>
+                <div class="stat-value" id="internalTrans">--</div>
+                <div class="stat-label">معاملات داخلية</div>
+            </div>
+        </div>
+
+        <!-- Details Section -->
+        <div id="detailsSection" class="details-section">
+            <div style="text-align: center; padding: 40px;">
+                <h2 style="color: #1e293b; margin-bottom: 20px;">📊 المطابقة اكتملت بنجاح!</h2>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressBar" style="width: 0%;">
+                        0%
+                    </div>
+                </div>
+                <p style="color: #64748b; margin-top: 20px;">
+                    جميع البيانات متطابقة ✅
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ═══════════════════════════════════════════════════════════
+        // Configuration
+        // ═══════════════════════════════════════════════════════════
+        
+        const CONFIG = {
+            EZONE_API: 'https://api.ezonepay.ly/Wallet/transactions',
+            EZONE_TOKEN: localStorage.getItem('ezone_token') || '',
+            
+            NAWRIS_API: 'https://backoffice.nawris.algoriza.com/external-api/treasury/movements',
+            NAWRIS_TOKEN: localStorage.getItem('nawris_token') || '',
+            
+            AUTO_REFRESH_INTERVAL: 24 * 60 * 60 * 1000, // 24 hours
+            CACHE_KEY: 'reconciliation_data',
+            CACHE_EXPIRY: 24 * 60 * 60 * 1000 // 24 hours
+        };
+        
+        // Check if tokens are set
+        function checkTokens() {
+            if (!CONFIG.EZONE_TOKEN || !CONFIG.NAWRIS_TOKEN) {
+                const ezoneToken = prompt('أدخل EzonePay Token:');
+                const nawrisToken = prompt('أدخل Nawris Token:');
+                
+                if (ezoneToken && nawrisToken) {
+                    localStorage.setItem('ezone_token', ezoneToken);
+                    localStorage.setItem('nawris_token', nawrisToken);
+                    CONFIG.EZONE_TOKEN = ezoneToken;
+                    CONFIG.NAWRIS_TOKEN = nawrisToken;
+                    return true;
+                }
+                return false;
+            }
+            return true;
+        }
+        
+        let autoRefreshTimer = null;
+        
+        // ═══════════════════════════════════════════════════════════
+        // Utility Functions
+        // ═══════════════════════════════════════════════════════════
+        
+        function formatNumber(num) {
+            return new Intl.NumberFormat('ar-LY').format(num);
+        }
+        
+        function formatCurrency(num) {
+            return formatNumber(num.toFixed(2));
+        }
+        
+        function updateLastUpdate() {
+            const now = new Date();
+            const formatted = now.toLocaleString('ar-LY', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            document.getElementById('lastUpdate').textContent = `آخر تحديث: ${formatted}`;
+        }
+        
+        function showLoading() {
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('errorState').style.display = 'none';
+            document.getElementById('successState').style.display = 'none';
+            document.getElementById('summarySection').style.display = 'none';
+            document.getElementById('detailsSection').classList.remove('active');
+        }
+        
+        function showError(message) {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('errorState').innerHTML = `
+                <div class="error">
+                    <strong>❌ خطأ:</strong> ${message}
+                </div>
+            `;
+            document.getElementById('errorState').style.display = 'block';
+        }
+        
+        function showSuccess(message) {
+            document.getElementById('successState').innerHTML = `
+                <div class="success-msg">
+                    <strong>✅ نجح:</strong> ${message}
+                </div>
+            `;
+            document.getElementById('successState').style.display = 'block';
+            setTimeout(() => {
+                document.getElementById('successState').style.display = 'none';
+            }, 5000);
+        }
+        
+        // ═══════════════════════════════════════════════════════════
+        // Data Fetching
+        // ═══════════════════════════════════════════════════════════
+        
+        async function fetchEzoneData() {
+            const allItems = [];
+            let pageNumber = 1;
+            const pageSize = 200;
+            
+            while (true) {
+                const response = await fetch(
+                    `${CONFIG.EZONE_API}?pageSize=${pageSize}&pageNumber=${pageNumber}`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${CONFIG.EZONE_TOKEN}`,
+                            'Accept': 'application/json'
+                        }
+                    }
+                );
+                
+                if (!response.ok) {
+                    throw new Error(`EzonePay API خطأ: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const items = data.items || [];
+                
+                if (items.length === 0) break;
+                
+                allItems.push(...items);
+                
+                if (!data.hasNext || pageNumber >= data.totalPages) break;
+                
+                pageNumber++;
+            }
+            
+            return allItems;
+        }
+        
+        async function fetchNawrisData() {
+            const allData = [];
+            let cursor = null;
+            let iteration = 0;
+            const maxIterations = 100;
+            
+            while (iteration < maxIterations) {
+                let url = CONFIG.NAWRIS_API + '?per_page=200';
+                if (cursor) {
+                    url += '&cursor=' + encodeURIComponent(cursor);
+                }
+                
+                const response = await fetch(url, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-API-TOKEN': CONFIG.NAWRIS_TOKEN
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Nawris API خطأ: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const items = data.data || [];
+                
+                if (items.length === 0) break;
+                
+                allData.push(...items);
+                
+                const nextCursor = data.meta?.next_cursor;
+                if (!nextCursor || nextCursor === cursor) break;
+                
+                cursor = nextCursor;
+                iteration++;
+            }
+            
+            return allData;
+        }
+        
+        function reconcileData(nawrisData, ezoneData) {
+            // Filter EzonePay payments
+            const ezonePayments = ezoneData.filter(i => i.transactionType === 'دفعة واردة');
+            
+            // Index EzonePay by transaction ID
+            const ezoneMap = {};
+            ezonePayments.forEach(item => {
+                const transId = String(item.originalTransactionId || '');
+                if (transId) {
+                    ezoneMap[transId] = item;
+                }
+            });
+            
+            // Reconcile
+            let matched = 0;
+            let withCommission = 0;
+            let internal = 0;
+            let totalNawrisAmount = 0;
+            let totalEzoneAmount = 0;
+            
+            nawrisData.forEach(item => {
+                const notes = item.notes || '';
+                const transIdMatch = notes.match(/رقم العملية\s+(\d+)/);
+                
+                if (transIdMatch) {
+                    const transId = transIdMatch[1];
+                    const nawrisAmount = parseFloat(item.incoming || 0);
+                    
+                    if (ezoneMap[transId]) {
+                        const ezoneAmount = parseFloat(ezoneMap[transId].amount || 0);
+                        
+                        totalNawrisAmount += nawrisAmount;
+                        totalEzoneAmount += ezoneAmount;
+                        
+                        if (Math.abs(nawrisAmount - ezoneAmount) < 0.01) {
+                            matched++;
+                        } else {
+                            withCommission++;
+                        }
+                    }
+                } else {
+                    internal++;
+                }
+            });
+            
+            const totalMatched = matched + withCommission;
+            const accuracy = nawrisData.length > 0 
+                ? ((totalMatched / nawrisData.length) * 100).toFixed(1)
+                : 0;
+            
+            const commission = totalEzoneAmount - totalNawrisAmount;
+            
+            return {
+                totalNawris: nawrisData.length,
+                totalEzone: ezonePayments.length,
+                matched,
+                withCommission,
+                totalMatched,
+                internal,
+                accuracy,
+                totalNawrisAmount,
+                totalEzoneAmount,
+                commission
+            };
+        }
+        
+        // ═══════════════════════════════════════════════════════════
+        // Main Function
+        // ═══════════════════════════════════════════════════════════
+        
+        async function fetchAllData() {
+            // Check tokens first
+            if (!checkTokens()) {
+                showError('يجب إدخال الـ Tokens للمتابعة');
+                return;
+            }
+            
+            showLoading();
+            document.getElementById('refreshBtn').disabled = true;
+            
+            try {
+                console.log('🚀 بدء جلب البيانات...');
+                
+                // Fetch data
+                const [ezoneData, nawrisData] = await Promise.all([
+                    fetchEzoneData(),
+                    fetchNawrisData()
+                ]);
+                
+                console.log(`✅ EzonePay: ${ezoneData.length} معاملة`);
+                console.log(`✅ Nawris: ${nawrisData.length} حركة`);
+                
+                // Reconcile
+                const results = reconcileData(nawrisData, ezoneData);
+                
+                // Cache results
+                const cacheData = {
+                    results,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem(CONFIG.CACHE_KEY, JSON.stringify(cacheData));
+                
+                // Display results
+                displayResults(results);
+                updateLastUpdate();
+                
+                showSuccess(`تم تحديث البيانات بنجاح! ${results.totalNawris} معاملة`);
+                
+            } catch (error) {
+                console.error('❌ خطأ:', error);
+                showError(error.message);
+            } finally {
+                document.getElementById('refreshBtn').disabled = false;
+            }
+        }
+        
+        function displayResults(results) {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('summarySection').style.display = 'grid';
+            document.getElementById('detailsSection').classList.add('active');
+            
+            // Update statistics
+            document.getElementById('totalNawris').textContent = formatNumber(results.totalNawris);
+            document.getElementById('totalMatched').textContent = formatNumber(results.totalMatched);
+            document.getElementById('accuracy').textContent = results.accuracy + '%';
+            document.getElementById('totalAmount').textContent = formatCurrency(results.totalNawrisAmount);
+            document.getElementById('totalCommission').textContent = formatCurrency(results.commission);
+            document.getElementById('internalTrans').textContent = formatNumber(results.internal);
+            
+            // Update progress bar
+            const progressBar = document.getElementById('progressBar');
+            progressBar.style.width = results.accuracy + '%';
+            progressBar.textContent = results.accuracy + '%';
+        }
+        
+        // ═══════════════════════════════════════════════════════════
+        // Auto Refresh
+        // ═══════════════════════════════════════════════════════════
+        
+        function toggleAutoRefresh() {
+            if (autoRefreshTimer) {
+                clearInterval(autoRefreshTimer);
+                autoRefreshTimer = null;
+                document.getElementById('autoRefreshText').textContent = '⏰ تفعيل التحديث التلقائي';
+                showSuccess('تم إيقاف التحديث التلقائي');
+            } else {
+                autoRefreshTimer = setInterval(fetchAllData, CONFIG.AUTO_REFRESH_INTERVAL);
+                document.getElementById('autoRefreshText').textContent = '⏸️ إيقاف التحديث التلقائي';
+                showSuccess('تم تفعيل التحديث التلقائي (كل 24 ساعة)');
+            }
+        }
+        
+        function clearCache() {
+            localStorage.removeItem(CONFIG.CACHE_KEY);
+            showSuccess('تم مسح الذاكرة المؤقتة');
+        }
+        
+        function resetTokens() {
+            localStorage.removeItem('ezone_token');
+            localStorage.removeItem('nawris_token');
+            CONFIG.EZONE_TOKEN = '';
+            CONFIG.NAWRIS_TOKEN = '';
+            if (checkTokens()) {
+                showSuccess('تم تحديث الـ Tokens بنجاح');
+                fetchAllData();
+            }
+        }
+        
+        // ═══════════════════════════════════════════════════════════
+        // Initialize
+        // ═══════════════════════════════════════════════════════════
+        
+        window.addEventListener('load', () => {
+            // Check cache
+            const cached = localStorage.getItem(CONFIG.CACHE_KEY);
+            if (cached) {
+                try {
+                    const cacheData = JSON.parse(cached);
+                    const age = Date.now() - cacheData.timestamp;
+                    
+                    if (age < CONFIG.CACHE_EXPIRY) {
+                        console.log('📦 استخدام البيانات المخزنة');
+                        displayResults(cacheData.results);
+                        updateLastUpdate();
+                        return;
+                    }
+                } catch (e) {
+                    console.error('خطأ في قراءة الذاكرة المؤقتة:', e);
+                }
+            }
+            
+            // Fetch fresh data
+            fetchAllData();
+        });
+    </script>
+</body>
+</html>
